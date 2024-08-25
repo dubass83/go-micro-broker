@@ -7,12 +7,15 @@ import (
 	"github.com/dubass83/go-micro-broker/cmd/api"
 )
 
+const servicePort = ":8080"
+
 func main() {
 	s := api.CreateNewServer()
 	s.ConfigureCORS()
 	s.AddMiddleware()
 	s.MountHandlers()
-	err := http.ListenAndServe(":8080", s.Router)
+	log.Printf("start listening on the port %s\n", servicePort)
+	err := http.ListenAndServe(servicePort, s.Router)
 	if err != nil {
 		log.Fatal(err)
 	}
