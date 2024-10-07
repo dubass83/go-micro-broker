@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/dubass83/go-micro-broker/util"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -8,12 +9,14 @@ import (
 
 type Server struct {
 	Router *chi.Mux
+	Conf   util.Config
 	// Db, config can be added here
 }
 
-func CreateNewServer() *Server {
+func CreateNewServer(conf util.Config) *Server {
 	s := &Server{
 		Router: chi.NewRouter(),
+		Conf:   conf,
 	}
 	return s
 }
