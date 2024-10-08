@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+
+	"github.com/rs/zerolog/log"
 )
 
 type RequestPayload struct {
@@ -38,6 +40,7 @@ func (s *Server) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 	switch requestPayload.Action {
 	case "auth":
+		log.Debug().Msg("handle auth case")
 		authenticate(w, requestPayload.Auth, s.Conf.AuthService)
 	default:
 		errorJSON(w, errors.New("unknown action"))
@@ -45,9 +48,10 @@ func (s *Server) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 }
 
 func authenticate(w http.ResponseWriter, auth AuthPayload, authService string) {
+	log.Debug().Msg("run authenticate method")
 	jsonData, _ := json.MarshalIndent(auth, "", "\t")
-
 	authURL := fmt.Sprintf("%s/authenticate", authService)
+	log.Debug().Msgf("authURL: %s", authURL)
 	request, err := http.NewRequest("POST", authURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		errorJSON(w, err)
@@ -72,10 +76,15 @@ func authenticate(w http.ResponseWriter, auth AuthPayload, authService string) {
 	}
 
 	var jsonFromService jsonResponse
+	maxBytes := 1048576 // 1 Mb
 
-	err = json.NewDecoder(request.Body).Decode(&jsonFromService)
+	response.Body = http.MaxBytesReader(w, response.Body, int64(maxBytes))
+	dec := json.NewDecoder(response.Body)
+	err = dec.Decode(&jsonFromService)
+	log.Debug().Msgf("jsonFromService: %+v", jsonFromService)
 	if err != nil {
-		errorJSON(w, err)
+		errorJSON(w, errors.New(err.Error()))
+		log.Error().Err(err)
 		return
 	}
 

@@ -27,7 +27,8 @@ func main() {
 	s.ConfigureCORS()
 	s.AddMiddleware()
 	s.MountHandlers()
-	log.Printf("start listening on the port %s\n", conf.HTTPAddressString)
+	log.Info().
+		Msgf("start listening on the port %s\n", conf.HTTPAddressString)
 	err = http.ListenAndServe(conf.HTTPAddressString, s.Router)
 	if err != nil {
 		log.Fatal().

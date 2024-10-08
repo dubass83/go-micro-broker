@@ -9,7 +9,7 @@ import (
 type Config struct {
 	Enviroment        string `mapstructure:"ENVIROMENT"`
 	HTTPAddressString string `mapstructure:"HTTP_ADDRESS_STRING"`
-	AuthService       string `maostructure:"AUTH_SERVICE"`
+	AuthService       string `mapstructure:"AUTH_SERVICE"`
 }
 
 // LoadConfig read configuration from file conf.env or enviroment variables
