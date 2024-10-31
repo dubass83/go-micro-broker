@@ -10,6 +10,7 @@ type Config struct {
 	Enviroment        string `mapstructure:"ENVIROMENT"`
 	HTTPAddressString string `mapstructure:"HTTP_ADDRESS_STRING"`
 	AuthService       string `mapstructure:"AUTH_SERVICE"`
+	LogService        string `mapstructure:"LOG_SERVICE"`
 }
 
 // LoadConfig read configuration from file conf.env or enviroment variables
