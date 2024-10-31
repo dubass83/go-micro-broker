@@ -48,7 +48,7 @@ func (s *Server) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	case "auth":
 		log.Debug().Msg("handle auth case")
 		authenticate(w, requestPayload.Auth, s.Conf.AuthService)
-	case "log":
+	case "logger":
 		log.Debug().Msg("handle log case")
 		writeLog(w, requestPayload.Log, s.Conf.LogService)
 	default:
