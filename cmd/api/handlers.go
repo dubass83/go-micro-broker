@@ -14,6 +14,7 @@ type RequestPayload struct {
 	Action string      `json:"action"`
 	Auth   AuthPayload `json:"auth,omitempty"`
 	Log    LogEntry    `json:"log,omitempty"`
+	Mail   MailPayload `json:"mail,omitempty"`
 }
 
 type AuthPayload struct {
@@ -24,6 +25,12 @@ type AuthPayload struct {
 type LogEntry struct {
 	Name string `json:"name"`
 	Data string `json:"data"`
+}
+
+type MailPayload struct {
+	To      string `json:"to"`
+	Subject string `json:"subject"`
+	Message string `json:"message"`
 }
 
 // Broker api Handler
@@ -51,6 +58,9 @@ func (s *Server) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	case "logger":
 		log.Debug().Msg("handle log case")
 		writeLog(w, requestPayload.Log, s.Conf.LogService)
+	case "mailer":
+		log.Debug().Msg("handle mail case")
+		sendMail(w, requestPayload.Mail, s.Conf.MailService)
 	default:
 		errorJSON(w, errors.New("unknown action"))
 	}
@@ -160,6 +170,61 @@ func writeLog(w http.ResponseWriter, logs LogEntry, logService string) {
 	payload := &jsonResponse{
 		Error:   false,
 		Massage: "logged!",
+		Data:    jsonFromService.Data,
+	}
+
+	writeJSON(w, http.StatusAccepted, payload)
+}
+
+func sendMail(w http.ResponseWriter, mail MailPayload, mailService string) {
+	log.Debug().Msg("send mail using mail service")
+	jsonData, _ := json.MarshalIndent(mail, "", "\t")
+	mailURL := fmt.Sprintf("%s/send", mailService)
+	log.Debug().Msgf("mailURL: %s", mailURL)
+	request, err := http.NewRequest("POST", mailURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	client := &http.Client{}
+	response, err := client.Do(request)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+	defer response.Body.Close()
+
+	// if response.StatusCode == http.StatusUnauthorized {
+	// 	errorJSON(w, errors.New("invalid credentials"))
+	// 	return
+	// }
+	if response.StatusCode != http.StatusAccepted {
+		errorJSON(w, errors.New("error calling mail service"))
+		return
+	}
+
+	var jsonFromService jsonResponse
+	maxBytes := 1048576 // 1 Mb
+
+	response.Body = http.MaxBytesReader(w, response.Body, int64(maxBytes))
+	dec := json.NewDecoder(response.Body)
+	err = dec.Decode(&jsonFromService)
+	log.Debug().Msgf("jsonFromService: %+v", jsonFromService)
+	if err != nil {
+		errorJSON(w, errors.New(err.Error()))
+		log.Error().Err(err)
+		return
+	}
+
+	if jsonFromService.Error {
+		errorJSON(w, errors.New(jsonFromService.Massage))
+		return
+	}
+
+	payload := &jsonResponse{
+		Error:   false,
+		Massage: "message sent successfully!",
 		Data:    jsonFromService.Data,
 	}
 
