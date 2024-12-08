@@ -12,6 +12,7 @@ type Config struct {
 	AuthService       string `mapstructure:"AUTH_SERVICE"`
 	LogService        string `mapstructure:"LOG_SERVICE"`
 	MailService       string `mapstructure:"MAIL_SERVICE"`
+	RabbitURL         string `mapstructure:"RABBIT_URL"`
 }
 
 // LoadConfig read configuration from file conf.env or enviroment variables
