@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/dubass83/go-micro-broker/event"
 	"github.com/dubass83/go-micro-broker/util"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
@@ -8,15 +9,17 @@ import (
 )
 
 type Server struct {
-	Router *chi.Mux
-	Conf   util.Config
+	Router   *chi.Mux
+	Conf     util.Config
+	Producer event.Producer
 	// Db, config can be added here
 }
 
-func CreateNewServer(conf util.Config) *Server {
+func CreateNewServer(conf util.Config, producer event.Producer) *Server {
 	s := &Server{
-		Router: chi.NewRouter(),
-		Conf:   conf,
+		Router:   chi.NewRouter(),
+		Conf:     conf,
+		Producer: producer,
 	}
 	return s
 }

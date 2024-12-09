@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dubass83/go-micro-broker/cmd/api"
+	"github.com/dubass83/go-micro-broker/event"
 	"github.com/dubass83/go-micro-broker/util"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog"
@@ -35,7 +36,12 @@ func main() {
 
 	log.Info().Msg("connected to RabbitMQ and ready to produce events...")
 
-	s := api.CreateNewServer(conf)
+	producer, err := event.NewProducer(rcon)
+	if err != nil {
+		log.Fatal().Msg("failed to create a producer for RabbitMQ conection")
+	}
+
+	s := api.CreateNewServer(conf, producer)
 	s.ConfigureCORS()
 	s.AddMiddleware()
 	s.MountHandlers()

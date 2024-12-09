@@ -57,7 +57,8 @@ func (s *Server) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 		authenticate(w, requestPayload.Auth, s.Conf.AuthService)
 	case "logger":
 		log.Debug().Msg("handle log case")
-		writeLog(w, requestPayload.Log, s.Conf.LogService)
+		// writeLog(w, requestPayload.Log, s.Conf.LogService)
+		s.logEventViaRebbit(w, requestPayload.Log)
 	case "mailer":
 		log.Debug().Msg("handle mail case")
 		sendMail(w, requestPayload.Mail, s.Conf.MailService)
@@ -229,4 +230,40 @@ func sendMail(w http.ResponseWriter, mail MailPayload, mailService string) {
 	}
 
 	writeJSON(w, http.StatusAccepted, payload)
+}
+
+func (s *Server) logEventViaRebbit(w http.ResponseWriter, l LogEntry) {
+	err := s.pushToQueue(l.Name, l.Data)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	payload := &jsonResponse{
+		Error:   false,
+		Massage: "logged to event to rabbitmq",
+	}
+
+	writeJSON(w, http.StatusAccepted, payload)
+}
+
+func (s *Server) pushToQueue(name, msg string) error {
+	payload := LogEntry{
+		Name: name,
+		Data: msg,
+	}
+
+	j, err := json.MarshalIndent(&payload, "", "\t")
+	if err != nil {
+		log.Error().Err(err).Msg("failed to marshal type LogEntry to json")
+		return err
+	}
+
+	err = s.Producer.Push(string(j), "log.INFO")
+	if err != nil {
+		log.Error().Err(err).Msg("failed to push event to rabbitmq")
+		return err
+	}
+
+	return nil
 }
