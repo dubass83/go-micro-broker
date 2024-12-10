@@ -57,6 +57,7 @@ func (s *Server) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 		authenticate(w, requestPayload.Auth, s.Conf.AuthService)
 	case "logger":
 		log.Debug().Msg("handle log case")
+		log.Debug().Msgf("Log.Name:(%s) Log.Data:(%s)", requestPayload.Log.Name, requestPayload.Log.Data)
 		// writeLog(w, requestPayload.Log, s.Conf.LogService)
 		s.logEventViaRebbit(w, requestPayload.Log)
 	case "mailer":
@@ -258,7 +259,7 @@ func (s *Server) pushToQueue(name, msg string) error {
 		log.Error().Err(err).Msg("failed to marshal type LogEntry to json")
 		return err
 	}
-
+	log.Debug().Msgf("pushToQueue LogEntry: %s", j)
 	err = s.Producer.Push(string(j), "log.INFO")
 	if err != nil {
 		log.Error().Err(err).Msg("failed to push event to rabbitmq")
