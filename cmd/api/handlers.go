@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/rpc"
 
 	"github.com/rs/zerolog/log"
 )
@@ -33,6 +34,11 @@ type MailPayload struct {
 	Message string `json:"message"`
 }
 
+type RPCPayload struct {
+	Name string
+	Data string
+}
+
 // Broker api Handler
 func Broker(w http.ResponseWriter, r *http.Request) {
 	payload := jsonResponse{
@@ -57,9 +63,10 @@ func (s *Server) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 		authenticate(w, requestPayload.Auth, s.Conf.AuthService)
 	case "logger":
 		log.Debug().Msg("handle log case")
-		log.Debug().Msgf("Log.Name:(%s) Log.Data:(%s)", requestPayload.Log.Name, requestPayload.Log.Data)
+		// log.Debug().Msgf("Log.Name:(%s) Log.Data:(%s)", requestPayload.Log.Name, requestPayload.Log.Data)
 		// writeLog(w, requestPayload.Log, s.Conf.LogService)
-		s.logEventViaRebbit(w, requestPayload.Log)
+		// s.logEventViaRebbit(w, requestPayload.Log)
+		s.logItemViaRPC(w, requestPayload.Log)
 	case "mailer":
 		log.Debug().Msg("handle mail case")
 		sendMail(w, requestPayload.Mail, s.Conf.MailService)
@@ -267,4 +274,33 @@ func (s *Server) pushToQueue(name, msg string) error {
 	}
 
 	return nil
+}
+
+func (s *Server) logItemViaRPC(w http.ResponseWriter, l LogEntry) {
+	log.Info().Msgf("log item %s with data %s via RPC", l.Name, l.Data)
+	rpcClient, err := rpc.Dial("tcp", s.Conf.RPCService)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+	defer rpcClient.Close()
+
+	payload := &RPCPayload{
+		Name: l.Name,
+		Data: l.Data,
+	}
+
+	var reply string
+	err = rpcClient.Call("RPCService.LogInfo", payload, &reply)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	response := &jsonResponse{
+		Error:   false,
+		Massage: reply,
+	}
+
+	writeJSON(w, http.StatusAccepted, response)
 }
