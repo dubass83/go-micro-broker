@@ -276,6 +276,14 @@ func (s *Server) pushToQueue(name, msg string) error {
 	return nil
 }
 
+// logItemViaRPC logs an item via RPC by sending the log entry to the configured RPC service.
+// It takes an HTTP response writer and a LogEntry as parameters.
+// If there is an error during the RPC call, it writes an error JSON response.
+// On success, it writes a JSON response with the reply from the RPC service.
+//
+// Parameters:
+//   - w: The HTTP response writer to send the response.
+//   - l: The LogEntry containing the log data to be sent via RPC.
 func (s *Server) logItemViaRPC(w http.ResponseWriter, l LogEntry) {
 	log.Info().Msgf("log item %s with data %s via RPC", l.Name, l.Data)
 	rpcClient, err := rpc.Dial("tcp", s.Conf.RPCService)
