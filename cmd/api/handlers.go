@@ -2,13 +2,18 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/rpc"
+	"time"
 
+	"github.com/dubass83/go-micro-broker/pb"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type RequestPayload struct {
@@ -310,5 +315,48 @@ func (s *Server) logItemViaRPC(w http.ResponseWriter, l LogEntry) {
 		Massage: reply,
 	}
 
+	writeJSON(w, http.StatusAccepted, response)
+}
+
+func (s *Server) LogItemViaGRPC(w http.ResponseWriter, r *http.Request) {
+	var requestPayload RequestPayload
+	err := readJSON(w, r, &requestPayload)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+	log.Info().Msgf("log item %s with data %s via gRPC", requestPayload.Log.Name, requestPayload.Log.Data)
+	conn, err := grpc.Dial(
+		s.Conf.GRPCService,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+	)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+	defer conn.Close()
+
+	c := pb.NewLogServiceClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	resp, err := c.WriteLog(ctx, &pb.LogRequest{
+		LogEntry: &pb.Log{
+			Name: requestPayload.Log.Name,
+			Data: requestPayload.Log.Data,
+		},
+	},
+	)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	response := &jsonResponse{
+		Error:   false,
+		Massage: "log item via gRPC with result: " + resp.Result,
+	}
+	log.Info().Msgf("log item via gRPC with result: %s", resp.Result)
 	writeJSON(w, http.StatusAccepted, response)
 }
