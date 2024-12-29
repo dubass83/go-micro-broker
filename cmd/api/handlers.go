@@ -355,8 +355,8 @@ func (s *Server) LogItemViaGRPC(w http.ResponseWriter, r *http.Request) {
 
 	response := &jsonResponse{
 		Error:   false,
-		Massage: "log item via gRPC with result: " + resp.Result,
+		Massage: resp.Result,
 	}
-	log.Info().Msgf("log item via gRPC with result: %s", resp.Result)
+	log.Info().Msg(resp.Result)
 	writeJSON(w, http.StatusAccepted, response)
 }
